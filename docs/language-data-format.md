@@ -15,7 +15,7 @@ One `[[file]]` per upstream file:
 ```toml
 [[file]]
 locale = "nl"                 # lowercase BCP 47
-kind = "spelling-aff"         # spelling-aff | spelling-dic | hyphenation | licence
+kind = "spelling-aff"         # spelling-aff | spelling-dic | hyphenation | hyphenation-nonstandard | licence
 url = "https://raw.githubusercontent.com/LibreOffice/dictionaries/<commit>/nl_NL/nl_NL.aff"
 commit = "<upstream commit sha>"
 sha256 = "<hex>"
@@ -167,3 +167,25 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory /tmp/packs
 
 Then point the app's pack index at `http://127.0.0.1:8765/index.json` with the sha256 of that
 file (`sha256sum /tmp/packs/index.json`). Leave out `--only` to build every published pack.
+
+## Optional nonstandard hyphenation
+
+`hyphenation-nonstandard` supplies UTF-8 Libhyphen/Huhyphn replacement patterns as
+`hyphenation.nonstandard` alongside the unchanged standard `hyphenation.pat`.
+Older consumers retain their standard patterns; craft-proof consumers implementing
+insertion opportunities prefer the nonstandard file. Applications must handle the
+returned display letters in layout and PDF output, without modifying source text.
+
+Hungarian uses the original LibreOffice source at the manifest pin, verified before
+packing. That exact source contains two malformed replacement records. Pack
+construction corrects only those two exact lines, refuses missing/duplicate lines,
+and adds `LICENCES/MODIFICATIONS-hu-hyphenation.txt`. The source cache and source
+checksums remain unchanged. Both source authors and the selected MPL-1.1 licence
+are retained. The extra pack component and these small build rules replace the
+previous app-local data, patched crate and binary dictionary; no dictionary or
+pattern file is committed to DesignCraft.
+
+This pack addition depends on the craft-proof nonstandard-pattern reader. Publish
+that library support before releasing and pinning the expanded pack. Local checks
+use the adjacent craft-libs checkout as a Cargo source override until its shared
+revision is available.

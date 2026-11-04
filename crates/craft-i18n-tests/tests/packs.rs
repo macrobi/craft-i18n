@@ -113,11 +113,26 @@ fn packs_load_and_check() {
                 (Err(e), false) => eprintln!("{locale}: hidden; {e}"),
             }
         }
-        if published && let Some(pat) = file(&manifest, locale, Kind::Hyphenation) {
-            match String::from_utf8(pat) {
-                Ok(text) if !craft_proof::patterns::Patterns::parse(&text).is_empty() => {}
-                Ok(_) => errors.push(format!("{locale}: hyphenation has no patterns")),
-                Err(e) => errors.push(format!("{locale}: hyphenation is not UTF-8: {e}")),
+        if published {
+            for kind in [Kind::Hyphenation, Kind::HyphenationNonstandard] {
+                let Some(entry) = manifest.entries(locale).find(|e| e.kind == kind) else {
+                    continue;
+                };
+                let Some(raw) = file(&manifest, locale, kind) else {
+                    continue;
+                };
+                let prepared = match packs::prepare_patterns(entry, &raw) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        errors.push(e);
+                        continue;
+                    }
+                };
+                match std::str::from_utf8(&prepared) {
+                    Ok(text) if !craft_proof::patterns::Patterns::parse(text).is_empty() => {}
+                    Ok(_) => errors.push(format!("{locale}: {kind:?} has no patterns")),
+                    Err(e) => errors.push(format!("{locale}: {kind:?} is not UTF-8: {e}")),
+                }
             }
         }
     }

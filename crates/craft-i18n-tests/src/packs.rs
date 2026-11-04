@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+mod hu;
 
 /// The largest file an entry may name (`craft-proof` reads at most this much per dictionary file).
 pub const MAX_FILE: u64 = 64 << 20;
@@ -106,6 +107,7 @@ pub enum Kind {
     SpellingAff,
     SpellingDic,
     Hyphenation,
+    HyphenationNonstandard,
     Licence,
 }
 
@@ -137,6 +139,7 @@ impl Entry {
             Kind::SpellingAff => "spelling.aff".into(),
             Kind::SpellingDic => "spelling.dic".into(),
             Kind::Hyphenation => "hyphenation.pat".into(),
+            Kind::HyphenationNonstandard => "hyphenation.nonstandard".into(),
             Kind::Licence => format!("LICENCES/{}", self.file_name()),
         }
     }
@@ -513,7 +516,7 @@ pub fn check(
                 ));
             }
         }
-        if !spelling && !has(Kind::Hyphenation) {
+        if !spelling && !has(Kind::Hyphenation) && !has(Kind::HyphenationNonstandard) {
             errors.push(format!("{locale}: no spelling or hyphenation file"));
         }
         if manifest
@@ -760,10 +763,27 @@ pub fn archive(
             .collect(),
     };
     let pack_toml = toml::to_string(&pack).map_err(|e| e.to_string())?;
+    let corrected = files
+        .iter()
+        .find(|(e, _)| hu::applies(e))
+        .map(|(e, d)| prepare_patterns(e, d).map(|d| d.into_owned()))
+        .transpose()?;
     let mut items: Vec<(String, &[u8])> = files
         .iter()
         .map(|(e, d)| (e.pack_path(), d.as_slice()))
         .collect();
+    if let Some(corrected) = &corrected {
+        if let Some((_, data)) = items
+            .iter_mut()
+            .find(|(name, _)| name == "hyphenation.nonstandard")
+        {
+            *data = corrected.as_slice();
+        }
+        items.push((
+            "LICENCES/MODIFICATIONS-hu-hyphenation.txt".into(),
+            hu::NOTICE.as_bytes(),
+        ));
+    }
     items.extend(standard);
     items.push(("pack.toml".into(), pack_toml.as_bytes()));
     items.sort_by(|a, b| a.0.cmp(&b.0));
@@ -837,7 +857,9 @@ pub fn build(
             licence: manifest.licence(locale),
             class: manifest.class(locale).as_str().to_owned(),
             spelling: files.iter().any(|(e, _)| e.kind == Kind::SpellingDic),
-            hyphenation: files.iter().any(|(e, _)| e.kind == Kind::Hyphenation),
+            hyphenation: files
+                .iter()
+                .any(|(e, _)| matches!(e.kind, Kind::Hyphenation | Kind::HyphenationNonstandard)),
             source: manifest.source(locale),
         });
     }
@@ -918,4 +940,24 @@ pub fn load_repo() -> Result<Repo, String> {
         checks: load_checks(&root.join("checks"))?,
         texts: load_licence_texts(&root.join("licences"))?,
     })
+}
+
+/// Prepare pattern bytes for a pack, keeping the verified upstream download unchanged.
+/// Two known malformed declarations of the pinned Hungarian source are corrected;
+/// the archive includes the modification notice and the original MPL licence.
+///
+/// # Errors
+/// Returns an error if the pinned source hash or expected lines do not match.
+pub fn prepare_patterns<'a>(
+    entry: &Entry,
+    data: &'a [u8],
+) -> Result<std::borrow::Cow<'a, [u8]>, String> {
+    if !hu::applies(entry) {
+        return Ok(std::borrow::Cow::Borrowed(data));
+    }
+    if sha256_hex(data) != entry.sha256 {
+        return Err("Hungarian pattern source hash mismatch".into());
+    }
+    let text = std::str::from_utf8(data).map_err(|e| e.to_string())?;
+    hu::correct(text).map(|s| std::borrow::Cow::Owned(s.into_bytes()))
 }
