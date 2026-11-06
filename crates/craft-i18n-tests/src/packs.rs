@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+#[cfg(test)]
 mod hu;
 
 /// The largest file an entry may name (`craft-proof` reads at most this much per dictionary file).
@@ -488,6 +489,11 @@ pub fn check(
                 "{locale}: spelling needs both spelling-aff and spelling-dic"
             ));
         }
+        if has(Kind::HyphenationNonstandard) && !has(Kind::Hyphenation) {
+            errors.push(format!(
+                "{locale}: hyphenation-nonstandard needs the standard hyphenation fallback"
+            ));
+        }
         if !has(Kind::Licence) {
             errors.push(format!(
                 "{locale}: needs a licence entry (the upstream notice)"
@@ -763,27 +769,10 @@ pub fn archive(
             .collect(),
     };
     let pack_toml = toml::to_string(&pack).map_err(|e| e.to_string())?;
-    let corrected = files
-        .iter()
-        .find(|(e, _)| hu::applies(e))
-        .map(|(e, d)| prepare_patterns(e, d).map(|d| d.into_owned()))
-        .transpose()?;
     let mut items: Vec<(String, &[u8])> = files
         .iter()
         .map(|(e, d)| (e.pack_path(), d.as_slice()))
         .collect();
-    if let Some(corrected) = &corrected {
-        if let Some((_, data)) = items
-            .iter_mut()
-            .find(|(name, _)| name == "hyphenation.nonstandard")
-        {
-            *data = corrected.as_slice();
-        }
-        items.push((
-            "LICENCES/MODIFICATIONS-hu-hyphenation.txt".into(),
-            hu::NOTICE.as_bytes(),
-        ));
-    }
     items.extend(standard);
     items.push(("pack.toml".into(), pack_toml.as_bytes()));
     items.sort_by(|a, b| a.0.cmp(&b.0));
@@ -940,24 +929,4 @@ pub fn load_repo() -> Result<Repo, String> {
         checks: load_checks(&root.join("checks"))?,
         texts: load_licence_texts(&root.join("licences"))?,
     })
-}
-
-/// Prepare pattern bytes for a pack, keeping the verified upstream download unchanged.
-/// Two known malformed declarations of the pinned Hungarian source are corrected;
-/// the archive includes the modification notice and the original MPL licence.
-///
-/// # Errors
-/// Returns an error if the pinned source hash or expected lines do not match.
-pub fn prepare_patterns<'a>(
-    entry: &Entry,
-    data: &'a [u8],
-) -> Result<std::borrow::Cow<'a, [u8]>, String> {
-    if !hu::applies(entry) {
-        return Ok(std::borrow::Cow::Borrowed(data));
-    }
-    if sha256_hex(data) != entry.sha256 {
-        return Err("Hungarian pattern source hash mismatch".into());
-    }
-    let text = std::str::from_utf8(data).map_err(|e| e.to_string())?;
-    hu::correct(text).map(|s| std::borrow::Cow::Owned(s.into_bytes()))
 }

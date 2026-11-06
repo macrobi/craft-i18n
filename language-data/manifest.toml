@@ -2424,7 +2424,7 @@ sha256 = "d253b8c6188cd0f1b2340c31c8202bf1978611385cf69b211b56991321ccbee0"
 size = 987385
 licence = "MPL-1.1"
 class = "Embeddable"
-note = "Huhyphn replacement patterns by Bence Nagy and László Németh. Pack construction records two narrowly scoped malformed replacement corrections in LICENCES/MODIFICATIONS-hu-hyphenation.txt; the source download and its hash remain unchanged."
+# Original Huhyphn data; malformed records are handled by the shared reader, not rewritten.
 
 
 # hy
