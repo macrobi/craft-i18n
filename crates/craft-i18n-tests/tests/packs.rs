@@ -80,6 +80,34 @@ fn spelling_problems(aff: &[u8], dic: &[u8], checks: &Checks) -> Result<Vec<Stri
     Ok(problems)
 }
 
+/// The manifest kind selects the parser even when a replacement file has no encoding header.
+fn hyphenation_patterns(kind: Kind, text: &str) -> Result<craft_proof::patterns::Patterns, String> {
+    if kind == Kind::HyphenationNonstandard {
+        craft_proof::patterns::Patterns::from_huhyphn(text)
+    } else {
+        craft_proof::patterns::Patterns::parse_checked(text)
+    }
+}
+
+#[test]
+fn nonstandard_kind_reads_headerless_replacements() {
+    let patterns =
+        hyphenation_patterns(Kind::HyphenationNonstandard, "as5szon2y/sz=,2,1\n").unwrap();
+    let points = patterns
+        .opportunities(&"asszony".chars().collect::<Vec<_>>())
+        .unwrap();
+    assert_eq!(points.len(), 1);
+    assert_eq!(points[0].at, 2);
+    assert_eq!(points[0].suffix.as_ref(), "z");
+}
+
+#[test]
+fn nonstandard_kind_rejects_a_file_with_only_malformed_records() {
+    assert!(
+        hyphenation_patterns(Kind::HyphenationNonstandard, "as5szony/not-a-replacement\n").is_err()
+    );
+}
+
 /// The exact hu sources load through the pinned shared reader, without fetching other packs.
 #[test]
 #[ignore = "requires CRAFT_I18N_CACHE containing the verified hu source files"]
@@ -102,9 +130,7 @@ fn hungarian_sources_load_unmodified_from_verified_cache() {
     );
     for kind in [Kind::Hyphenation, Kind::HyphenationNonstandard] {
         let bytes = get(kind);
-        let patterns =
-            craft_proof::patterns::Patterns::parse_checked(std::str::from_utf8(&bytes).unwrap())
-                .unwrap();
+        let patterns = hyphenation_patterns(kind, std::str::from_utf8(&bytes).unwrap()).unwrap();
         assert!(!patterns.is_empty());
     }
 }
@@ -148,8 +174,11 @@ fn packs_load_and_check() {
                     continue;
                 };
                 match std::str::from_utf8(&raw) {
-                    Ok(text) if !craft_proof::patterns::Patterns::parse(text).is_empty() => {}
-                    Ok(_) => errors.push(format!("{locale}: {kind:?} has no patterns")),
+                    Ok(text) => {
+                        if let Err(e) = hyphenation_patterns(kind, text) {
+                            errors.push(format!("{locale}: {kind:?}: {e}"));
+                        }
+                    }
                     Err(e) => errors.push(format!("{locale}: {kind:?} is not UTF-8: {e}")),
                 }
             }

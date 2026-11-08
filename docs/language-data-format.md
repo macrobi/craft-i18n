@@ -76,8 +76,15 @@ uses its language's (`es-mx` uses `es`). **`hidden = true`** keeps a pack out of
 gap in the pinned `craft-proof`: an unsupported feature (`craft-proof doesn't support <feature> yet
 (<AFF flag>)`), missing word segmentation, or suggestions too slow to use. It is a statement of fact
 about the pinned `craft-proof`, so refresh it when the pin moves.
-The current manifest and check-word files determine which packs are published;
-refresh hidden reasons against the exact craft-proof revision in Cargo.lock.
+The full fetch/load check at craft-proof revision
+`b4598283e0b25f753fe4e7858151d5a2f6661043` (2026-11-08) covers **80 locales**:
+**3 Excluded**, **2 hidden** (`mn`, `th`), and **75 published**. Every published
+pack loads and passes its check words and hyphenation compilation. The hidden
+packs also pass their word checks, but remain hidden for interactive-use reasons:
+Mongolian suggestions took 257–703 ms for the three check misspellings in an
+unoptimized, single-threaded Apple M3 run; Thai still needs word segmentation.
+These are a dated snapshot, not a guarantee for other revisions or machines.
+Refresh the counts and hidden reasons when the craft-proof pin changes.
 
 ## Checks
 
@@ -195,17 +202,11 @@ Original authors, notices and full selected MPL-1.1 licence remain in the pack.
 The archive regression checks byte preservation at different source pins, and
 the real generated archive is also tested through craft-font-store's installer.
 
-### Release order and dependency gate
+### Release order
 
-This is an extension proposed in [ADR 0005](adr/0005-language-data-lives-here.md).
-Older font-store installers reject the extra filename, even if the standard
-fallback is present. Merge and release craft-libs #598 (reader **and** installer),
-update consumers to that support, then release a new immutable pack/index.
+The optional replacement-pattern file extends the archive format described in
+[ADR 0005](adr/0005-language-data-lives-here.md). Older font-store installers reject
+its filename, even when the standard fallback is present. Release the shared
+reader and installer support first, update consumers to that support, then
+publish a new immutable Language pack release/index for those applications.
 Never replace an archive or index in an older pinned release.
-
-The checker uses the published review commit of #598 without local Cargo
-source overrides. Before merging this data PR, repin it to the eventual #598
-merge commit on craft-libs main and rerun the data checks. That merge revision
-cannot be pinned before it exists. Other pending pack kinds (including Khmer)
-are independent; whichever change merges second must retain both enum variants,
-match arms and manifest checks.

@@ -522,7 +522,7 @@ pub fn check(
                 ));
             }
         }
-        if !spelling && !has(Kind::Hyphenation) && !has(Kind::HyphenationNonstandard) {
+        if !spelling && !has(Kind::Hyphenation) {
             errors.push(format!("{locale}: no spelling or hyphenation file"));
         }
         if manifest
