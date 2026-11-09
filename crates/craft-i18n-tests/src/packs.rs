@@ -828,6 +828,18 @@ pub fn build(
             }
             continue;
         }
+        // `build` is public: direct callers must satisfy the installer's fallback contract too.
+        if manifest
+            .entries(locale)
+            .any(|e| e.kind == Kind::HyphenationNonstandard)
+            && !manifest
+                .entries(locale)
+                .any(|e| e.kind == Kind::Hyphenation)
+        {
+            return Err(format!(
+                "{locale}: hyphenation-nonstandard needs the standard hyphenation fallback"
+            ));
+        }
         let mut files = Vec::new();
         for e in manifest.entries(locale) {
             files.push((e, fetch(e, &opts.cache, opts.download)?));

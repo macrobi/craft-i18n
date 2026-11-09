@@ -27,4 +27,4 @@ workspace = true
 
 [dev-dependencies]
 # Companion shared proofing change: storytold/craft-libs#598; pin its published review commit.
-craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "169fe5d3e503dfe080223cdae1287c948a3f36cd" }
+craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "02bb05a088ac9eb4b0c768150913a5412e964d5a" }
