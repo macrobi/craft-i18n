@@ -1,5 +1,5 @@
 # Words the mn pack must accept and reject (common words; written for this check).
 hidden = true
-reason = "craft-proof suggestions take 399–757 ms for the three check misspellings at f5d68ced (unoptimized single-threaded Apple M3 run); too slow for interactive use"
+reason = "craft-proof suggestions take 246–679 ms for the three check misspellings at 169fe5d3 (unoptimized single-threaded Apple M3 run); too slow for interactive use"
 correct = ["байшин", "ном", "сургууль", "ус", "хот"]
 incorrect = ["номмм", "сургуулль", "хоттт"]
