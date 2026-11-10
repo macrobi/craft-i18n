@@ -26,5 +26,6 @@ zstd = "0.14.3"
 workspace = true
 
 [dev-dependencies]
+tempfile = "3.27.0"
 # Companion shared proofing change: storytold/craft-libs#598; pin its published review commit.
-craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "02bb05a088ac9eb4b0c768150913a5412e964d5a" }
+craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "7e0a381477a304f77417da16e8a5ff7dfcef3082" }

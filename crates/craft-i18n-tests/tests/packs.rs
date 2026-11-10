@@ -575,9 +575,11 @@ mod fixtures {
     /// Direct builder calls reject a missing standard fallback, including spelling-only packs.
     #[test]
     fn direct_build_requires_standard_hyphenation_fallback() {
-        let root =
-            std::env::temp_dir().join(format!("craft-i18n-build-fallback-{}", std::process::id()));
-        let cache = root.join("cache");
+        let root = tempfile::Builder::new()
+            .prefix("craft-i18n-build-fallback-")
+            .tempdir()
+            .unwrap();
+        let cache = root.path().join("cache");
         std::fs::create_dir_all(&cache).unwrap();
         let mut entries = Vec::new();
         for (kind, path, bytes) in [
@@ -616,7 +618,9 @@ mod fixtures {
             };
             let opts = packs::BuildOptions {
                 cache: cache.clone(),
-                out: root.join(if spelling { "spelling" } else { "hyphenation" }),
+                out: root
+                    .path()
+                    .join(if spelling { "spelling" } else { "hyphenation" }),
                 release: "test".into(),
                 version: "test".into(),
                 base_url: "https://example.invalid/".into(),
@@ -643,7 +647,6 @@ mod fixtures {
             assert!(index.packs[0].hyphenation);
             assert_eq!(index.packs[0].spelling, spelling);
         }
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     /// The archive holds the contract layout, is the same bytes every time, and `build` writes it
