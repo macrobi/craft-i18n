@@ -77,11 +77,11 @@ gap in the pinned `craft-proof`: an unsupported feature (`craft-proof doesn't su
 (<AFF flag>)`), missing word segmentation, or suggestions too slow to use. It is a statement of fact
 about the pinned `craft-proof`, so refresh it when the pin moves.
 The full fetch/load check at craft-proof revision
-`7e0a381477a304f77417da16e8a5ff7dfcef3082` (2026-11-10) covers **80 locales**:
+`c664fee740c5f0ec70e303f8c77d6beb17291b98` (2026-11-11) covers **80 locales**:
 **3 Excluded**, **2 hidden** (`mn`, `th`), and **75 published**. Every published
 pack loads and passes its check words and hyphenation compilation. The hidden
 packs also pass their word checks, but remain hidden for interactive-use reasons:
-Mongolian suggestions took 251–688 ms for the three check misspellings in an
+Mongolian suggestions took 311–809 ms for the three check misspellings in an
 unoptimized, single-threaded Apple M3 run; Thai still needs word segmentation.
 These are a dated snapshot, not a guarantee for other revisions or machines.
 Refresh the counts and hidden reasons when the craft-proof pin changes.
